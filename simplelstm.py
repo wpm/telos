@@ -1,45 +1,34 @@
-from functools import partial
-from random import choices
-from typing import Iterable, Tuple, Callable
+from random import shuffle, sample
+from typing import Tuple, Callable
 
-from numpy import array, zeros
+from numpy import arange, zeros, array
 
 
-def aligned_sequences(n: int, t: int, samples: Callable[[int], Iterable[Tuple[int, int]]]) -> Tuple[array, array]:
-    states = zeros((n, t), int)
-    observations = zeros((n, t), int)
+def long_distance_dependencies():
+    xs = arange(10)
+    ys = zeros(10, int)
+    shuffle(xs)
+    i, j = sorted(sample(range(10), 2))
+    xs[j] = xs[i]
+    ys[i] = ys[j] = 1
+    return xs, ys
+
+
+def aligned_sequences(n: int, sequence_sampler: Callable[[], Tuple[array, array]]) -> Tuple[array, array]:
+    xs, ys = sequence_sampler()
+    x = zeros((n, xs.shape[0]), int)
+    y = zeros((n, ys.shape[0]), int)
     for i in range(n):
-        xs = list(samples(t))
-        states[i] = [x[0] for x in xs]
-        observations[i] = [x[1] for x in xs]
-    return states, observations
-
-
-def sample_markov_model(n: int, transition: array, emission: array) -> Iterable[Tuple[int, int]]:
-    s = 0
-    for _ in range(n):
-        s = choices(range(transition.shape[1]), weights=transition[s].flatten())[0]
-        o = choices(range(1, emission.shape[1] + 1), weights=emission[s].flatten())[0]
-        yield s, o
+        xs, ys = sequence_sampler()
+        x[i] = xs
+        y[i] = ys
+    return x, y
 
 
 def main():
-    transition = array([
-        [0.0, 0.5, 0.5],
-        [0.0, 0.75, 0.25],
-        [0.0, 0.25, 0.75]
-    ])
-    emission = array([
-        [1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.6, 0.1, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.1, 0.1, 0.1, 0.6],
-    ])
-
-    samples = partial(sample_markov_model, transition=transition, emission=emission)
-    # noinspection PyTypeChecker
-    states, observations = aligned_sequences(10, 10, samples)
-    print(states)
-    print(observations)
+    x, y = aligned_sequences(5, long_distance_dependencies)
+    print(x)
+    print(y)
 
 
 if __name__ == '__main__':
