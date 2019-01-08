@@ -1,13 +1,23 @@
+from functools import partial
 from random import choices
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, Callable
 
-from cytoolz.itertoolz import take
-from numpy import array
+from numpy import array, zeros
 
 
-def sample_markov_model(transition, emission) -> Iterable[Tuple[int, int]]:
+def aligned_sequences(n: int, t: int, samples: Callable[[int], Iterable[Tuple[int, int]]]) -> Tuple[array, array]:
+    states = zeros((n, t), int)
+    observations = zeros((n, t), int)
+    for i in range(n):
+        xs = list(samples(t))
+        states[i] = [x[0] for x in xs]
+        observations[i] = [x[1] for x in xs]
+    return states, observations
+
+
+def sample_markov_model(n: int, transition: array, emission: array) -> Iterable[Tuple[int, int]]:
     s = 0
-    while True:
+    for _ in range(n):
         s = choices(range(transition.shape[1]), weights=transition[s].flatten())[0]
         o = choices(range(1, emission.shape[1] + 1), weights=emission[s].flatten())[0]
         yield s, o
@@ -25,8 +35,11 @@ def main():
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.1, 0.1, 0.1, 0.6],
     ])
 
-    for _ in range(10):
-        print([f"{chr(ord('A') + s)}:{o}" for s, o in take(10, sample_markov_model(transition, emission))])
+    samples = partial(sample_markov_model, transition=transition, emission=emission)
+    # noinspection PyTypeChecker
+    states, observations = aligned_sequences(10, 10, samples)
+    print(states)
+    print(observations)
 
 
 if __name__ == '__main__':
