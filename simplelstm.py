@@ -1,6 +1,7 @@
 from random import shuffle, sample
 from typing import Tuple, Callable
 
+from keras.layers import Bidirectional
 from numpy import arange, zeros, array, argmax, newaxis
 
 
@@ -9,9 +10,9 @@ def sequence_to_sequence_model(time_steps: int, labels: int, units: int = 16):
     from keras.layers import LSTM, TimeDistributed, Dense
 
     model = Sequential()
-    model.add(LSTM(units=units, input_shape=(time_steps, 1), return_sequences=True))
+    model.add(Bidirectional(LSTM(units=units, input_shape=(time_steps, 1), return_sequences=True)))
     model.add(TimeDistributed(Dense(labels, activation='softmax')))
-    model.compile(loss='categorical_crossentropy', optimizer='adam')
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
 
 
@@ -63,8 +64,7 @@ def main():
     # Train
     x, y = labeled_sequences(10000, digits_with_repetition_labels)
     model = sequence_to_sequence_model(x.shape[1], y.shape[2])
-    model.summary()
-    model.fit(x, y, epochs=500, verbose=2)
+    model.fit(x, y, epochs=500, verbose=2, validation_split=0.2)
     # Test
     x, y = labeled_sequences(5, digits_with_repetition_labels)
     y_ = model.predict(x, verbose=0)
