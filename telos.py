@@ -1,19 +1,19 @@
 from pathlib import Path
 from random import shuffle, sample
-from typing import Tuple, Callable, Optional
+from typing import Tuple, Callable, Optional, List
 
 import click
-from keras.callbacks import ModelCheckpoint
 from numpy import arange, zeros, array, newaxis, sum, size
 
 
-def sequence_to_sequence_model(time_steps: int = 10, labels: int = 2, units: int = 16):
+def sequence_to_sequence_model(time_steps: int = 10, labels: int = 2, units: List[int] = (16,)):
     from keras.layers import Bidirectional
     from keras import Sequential
     from keras.layers import LSTM, TimeDistributed, Dense
 
     model = Sequential()
-    model.add(Bidirectional(LSTM(units=units, input_shape=(time_steps, 1), return_sequences=True)))
+    for layer in units:
+        model.add(Bidirectional(LSTM(units=layer, input_shape=(time_steps, 1), return_sequences=True)))
     model.add(TimeDistributed(Dense(labels, activation='softmax')))
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
@@ -73,18 +73,20 @@ def telos_command():
 
 @telos_command.command('train')
 @click.argument('model_path', metavar='model', type=click.Path(dir_okay=False, readable=True))
-@click.option('--units', default=16, show_default=True, help='hidden units in the model')
+@click.option('--units', '-u', type=int, default=[16], multiple=True, show_default=True,
+              help='hidden units in the model')
 @click.option('--samples', default=10000, show_default=True, help='number of training samples')
 @click.option('--epochs', default=200, show_default=True, help='number of training epochs')
 @click.option('--validation-split', type=float, help='portion of data to use for validation')
 @click.option('--checkpoint', type=int, help='internal at which to save a checkpoint')
-@click.option('--verbose', count=True, help='Keras verbosity level')
-def train_command(model_path: str, units: int, samples: int, epochs: int, validation_split: Optional[float],
+@click.option('--verbose', '-v', count=True, help='Keras verbosity level')
+def train_command(model_path: str, units: List[int], samples: int, epochs: int, validation_split: Optional[float],
                   checkpoint: int, verbose: int):
     """
     Train a model.
     """
     from keras.models import load_model
+    from keras.callbacks import ModelCheckpoint
 
     x, y = labeled_sequences(samples, digits_with_repetition_labels)
     if Path(model_path).exists():
@@ -96,13 +98,14 @@ def train_command(model_path: str, units: int, samples: int, epochs: int, valida
         callbacks.append(ModelCheckpoint(filepath=model_path, verbose=verbose, save_best_only=True, period=checkpoint))
     model.fit(x, y, epochs=epochs, validation_split=validation_split, callbacks=callbacks, verbose=verbose)
     model.save(model_path)
+    model.summary()
 
 
 @telos_command.command('predict')
 @click.argument('model_path', metavar='model', type=click.Path(exists=True, dir_okay=False, readable=True))
 @click.option('--test-samples', default=1000, show_default=True, help='number of samples to evaluate')
 @click.option('--details', help='show prediction details')
-@click.option('--verbose', count=True, help='Keras verbosity level')
+@click.option('--verbose', '-v', count=True, help='Keras verbosity level')
 def predict_command(model_path: str, test_samples: int, details: bool, verbose: int):
     """
     Evaluate a randomly generated test set.
