@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import List, Optional
 
 import click
-from keras.callbacks import TensorBoard
 
 from telos import __version__
 from telos.model import sequence_to_sequence_model, digits_with_repetition_labels, LabeledSequences
@@ -74,7 +73,7 @@ def train_command(model_path: str, data: LabeledSequences, units: List[int],
     Train a model.
     """
     from keras.models import load_model
-    from keras.callbacks import ModelCheckpoint
+    from keras.callbacks import ModelCheckpoint, TensorBoard
 
     if Path(model_path).exists():
         model = load_model(model_path)
