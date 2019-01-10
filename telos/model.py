@@ -2,7 +2,7 @@ from random import shuffle, sample
 from typing import List, Tuple, Callable
 
 from h5py import File
-from numpy import newaxis
+from numpy import sum, size, newaxis
 from numpy.core.multiarray import array, arange, zeros
 
 
@@ -73,6 +73,13 @@ class LabeledSequences:
         y = to_categorical(y).astype(int)
         return cls(x, y)
 
+    @classmethod
+    def from_file(cls, filename):
+        with File(filename) as f:
+            x = array(f['x'])
+            y = array(f['y'])
+        return cls(x, y)
+
     def __init__(self, x: array, y: array):
         assert x.shape[0] == y.shape[0]
         assert x.shape[1] == y.shape[1]
@@ -100,6 +107,24 @@ class LabeledSequences:
     @property
     def labels(self) -> int:
         return self.y.shape[2]
+
+    def accuracy(self, y: array) -> float:
+        y_true = self.y.argmax(axis=2)
+        y_predicted = y.argmax(axis=2)
+        return sum(y_true == y_predicted) / size(y_true)
+
+    def prediction_details(self, y: array):
+        def label_row(ns: array) -> str:
+            return ' '.join([' ', '^'][n] for n in ns)
+
+        x = self.x[:, :, 0]
+        y_true = self.y.argmax(axis=2)
+        y_predicted = y.argmax(axis=2)
+        for i in range(self.x.shape[0]):
+            print(' '.join(str(n) for n in x[i]))
+            print(label_row(y_true[i]))
+            print(label_row(y_predicted[i]))
+            print()
 
     def save(self, filename):
         with File(filename, 'x') as f:

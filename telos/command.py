@@ -2,9 +2,6 @@ from pathlib import Path
 from typing import List, Optional
 
 import click
-from h5py import File
-from numpy import sum, size
-from numpy.core.multiarray import array
 
 from telos import __version__
 from telos.model import sequence_to_sequence_model, digits_with_repetition_labels, LabeledSequences
@@ -14,14 +11,10 @@ class LabeledSequencesParamType(click.ParamType):
     name = 'sequences'
 
     def convert(self, value, _, __):
-
         try:
-            with File(value) as f:
-                x = array(f['x'])
-                y = array(f['y'])
+            return LabeledSequences.from_file(value)
         except (KeyError, OSError) as e:
             self.fail(e)
-        return LabeledSequences(x, y)
 
 
 @click.group('telos')
@@ -103,19 +96,8 @@ def predict_command(model_path: str, data: LabeledSequences, details: bool, verb
     """
     from keras.models import load_model
 
-    def label_row(ns: array) -> str:
-        return ' '.join([' ', '^'][n] for n in ns)
-
     model = load_model(model_path)
-    y_ = model.predict(data.x, verbose=verbose)
-    x = data.x[:, :, 0]
-    y_true = data.y.argmax(axis=2)
-    y_predicted = y_.argmax(axis=2)
+    y = model.predict(data.x, verbose=verbose)
     if details:
-        for i in range(x.shape[0]):
-            print(' '.join(str(n) for n in x[i]))
-            print(label_row(y_true[i]))
-            print(label_row(y_predicted[i]))
-            print()
-    accuracy = sum(y_true == y_predicted) / size(y_true)
-    print(f'Accuracy: {accuracy:0.4}')
+        data.prediction_details(y)
+    print(f'Accuracy: {data.accuracy(y):0.4}')
