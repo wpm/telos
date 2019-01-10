@@ -39,7 +39,7 @@ def train_command(model_path: str, units: List[int], samples: int, epochs: int, 
     if Path(model_path).exists():
         model = load_model(model_path)
     else:
-        model = sequence_to_sequence_model(time_steps=x.shape[1], labels=y.shape[2], units=units)
+        model = sequence_to_sequence_model(time_steps=x.shape[1], features=x.shape[2], labels=y.shape[2], units=units)
     callbacks = []
     if checkpoint:
         callbacks.append(ModelCheckpoint(filepath=model_path, verbose=verbose, save_best_only=True, period=checkpoint))

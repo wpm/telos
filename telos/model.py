@@ -5,14 +5,23 @@ from numpy import newaxis
 from numpy.core.multiarray import array, arange, zeros
 
 
-def sequence_to_sequence_model(time_steps: int = 10, labels: int = 2, units: List[int] = (16,)):
+def sequence_to_sequence_model(time_steps: int = 10, features: int = 1, labels: int = 2, units: List[int] = (16,)):
+    """
+    Compile a layered bidirectional sequence-to-sequence LSTM model.
+
+    :param time_steps: number of time steps in the sequences
+    :param features: number of features in each time step of the feature sequence
+    :param labels: number of labels per time step in the label sequence
+    :param units: list of number of hidden units in each LSTM layer
+    :return: compiled model
+    """
     from keras.layers import Bidirectional
     from keras import Sequential
     from keras.layers import LSTM, TimeDistributed, Dense
 
     model = Sequential()
     for layer in units:
-        model.add(Bidirectional(LSTM(units=layer, input_shape=(time_steps, 1), return_sequences=True)))
+        model.add(Bidirectional(LSTM(units=layer, input_shape=(time_steps, features), return_sequences=True)))
     model.add(TimeDistributed(Dense(labels, activation='softmax')))
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
