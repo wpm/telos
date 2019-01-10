@@ -1,6 +1,7 @@
 from random import shuffle, sample
 from typing import List, Tuple, Callable
 
+from h5py import File
 from numpy import newaxis
 from numpy.core.multiarray import array, arange, zeros
 
@@ -45,27 +46,62 @@ def digits_with_repetition_labels() -> Tuple[array, array]:
     return xs, ys
 
 
-def labeled_sequences(n: int, sequence_sampler: Callable[[], Tuple[array, array]]) -> Tuple[array, array]:
-    """
-    Create training data for a sequence-to-sequence labeling model.
+class LabeledSequences:
+    @classmethod
+    def from_sampler(cls, n: int, sequence_sampler: Callable[[], Tuple[array, array]]) -> 'LabeledSequences':
+        """
+        Create training data for a sequence-to-sequence labeling model.
 
-    The features are an array of size samples * time steps * 1.
-    The labels are a one-hot encoding of time step labels of size samples * time steps * number of labels.
+        The features are an array of size samples * time steps * 1.
+        The labels are a one-hot encoding of time step labels of size samples * time steps * number of labels.
 
-    :param n: number of sequence pairs to generate
-    :param sequence_sampler: a function that returns two numeric sequences of equal length
-    :return: feature and label sequences
-    """
-    from keras.utils import to_categorical
+        :param n: number of sequence pairs to generate
+        :param sequence_sampler: a function that returns two numeric sequences of equal length
+        :return: feature and label sequences
+        """
+        from keras.utils import to_categorical
 
-    xs, ys = sequence_sampler()
-    assert len(xs) == len(ys)
-    x = zeros((n, len(xs)), int)
-    y = zeros((n, len(ys)), int)
-    for i in range(n):
         xs, ys = sequence_sampler()
-        x[i] = xs
-        y[i] = ys
-    x = x[:, :, newaxis]
-    y = to_categorical(y).astype(int)
-    return x, y
+        assert len(xs) == len(ys)
+        x = zeros((n, len(xs)), int)
+        y = zeros((n, len(ys)), int)
+        for i in range(n):
+            xs, ys = sequence_sampler()
+            x[i] = xs
+            y[i] = ys
+        x = x[:, :, newaxis]
+        y = to_categorical(y).astype(int)
+        return cls(x, y)
+
+    def __init__(self, x: array, y: array):
+        assert x.shape[0] == y.shape[0]
+        assert x.shape[1] == y.shape[1]
+        self.x = x
+        self.y = y
+
+    def __len__(self) -> int:
+        return self.samples
+
+    def __repr__(self) -> str:
+        return f'{self.samples} samples, {self.time_steps} time steps, {self.features} features, {self.labels} labels'
+
+    @property
+    def samples(self) -> int:
+        return self.x.shape[0]
+
+    @property
+    def time_steps(self) -> int:
+        return self.x.shape[1]
+
+    @property
+    def features(self) -> int:
+        return self.x.shape[2]
+
+    @property
+    def labels(self) -> int:
+        return self.y.shape[2]
+
+    def save(self, filename):
+        with File(filename, 'x') as f:
+            f.create_dataset('x', data=self.x)
+            f.create_dataset('y', data=self.y)

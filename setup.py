@@ -18,6 +18,6 @@ setup(
     author_email='billmcn@gmail.com',
     description='Deep Learning for Long Distance Dependencies',
     long_description=readme(),
-    entry_points={'console_scripts': ['telos=telos.command:telos_command']},
-    install_requires=['click', 'numpy', 'keras']
+    entry_points={'console_scripts': ['telos=telos.command:telos_group']},
+    install_requires=['click', 'numpy', 'keras', 'h5py']
 )

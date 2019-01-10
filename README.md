@@ -24,4 +24,5 @@ Telos trains a recursive neural network to predict the 0 and 1 labels
 given a sequence of digits.
 This requires a model to learn a simple long-distance dependency.
 
-See `telos --help` for details on training and evaluating models.
+See `telos --help` for details on generating data sets, training and
+evaluating models.
