@@ -1,5 +1,5 @@
 from random import shuffle, sample
-from typing import List, Tuple, Callable
+from typing import List, Tuple, Callable, Optional
 
 from h5py import File
 from numpy import sum, size, newaxis
@@ -113,17 +113,18 @@ class LabeledSequences:
         y_predicted = y.argmax(axis=2)
         return sum(y_true == y_predicted) / size(y_true)
 
-    def prediction_details(self, y: array):
+    def sequence_details(self, y: Optional[array] = None):
         def label_row(ns: array) -> str:
             return ' '.join([' ', '^'][n] for n in ns)
 
         x = self.x[:, :, 0]
         y_true = self.y.argmax(axis=2)
-        y_predicted = y.argmax(axis=2)
+        y_predicted = y.argmax(axis=2) if y is not None else None
         for i in range(self.x.shape[0]):
             print(' '.join(str(n) for n in x[i]))
             print(label_row(y_true[i]))
-            print(label_row(y_predicted[i]))
+            if y_predicted is not None:
+                print(label_row(y_predicted[i]))
             print()
 
     def save(self, filename):

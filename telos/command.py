@@ -46,12 +46,15 @@ def generate_command(n: int, output: str):
     data.save(output)
 
 
-@data_group.command('dimensions')
+@data_group.command('info')
 @click.argument('data', type=LabeledSequencesParamType())
-def dimensions_command(data: LabeledSequences):
+@click.option('--details', is_flag=True, help='show sequence details')
+def info_command(data: LabeledSequences, details: bool):
     """
-    Print labeled data set dimensions.
+    Info about a labeled data set.
     """
+    if details:
+        data.sequence_details()
     print(data)
 
 
@@ -103,5 +106,5 @@ def predict_command(model_path: str, data: LabeledSequences, details: bool, verb
     model = load_model(model_path)
     y = model.predict(data.x, verbose=verbose)
     if details:
-        data.prediction_details(y)
+        data.sequence_details(y)
     print(f'Accuracy: {data.accuracy(y):0.4}')
