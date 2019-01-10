@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import click
+from keras.callbacks import TensorBoard
 
 from telos import __version__
 from telos.model import sequence_to_sequence_model, digits_with_repetition_labels, LabeledSequences
@@ -63,10 +64,12 @@ def dimensions_command(data: LabeledSequences):
 @click.option('--epochs', default=200, show_default=True, help='number of training epochs')
 @click.option('--validation-split', type=float, help='portion of data to use for validation')
 @click.option('--checkpoint', type=int, help='interval at which to save a checkpoint')
+@click.option('--tensorboard', type=click.Path(exists=False, file_okay=False, writable=True),
+              help='directory in which to write TensorBoard logs')
 @click.option('--verbose', '-v', count=True, help='Keras verbosity level')
 def train_command(model_path: str, data: LabeledSequences, units: List[int],
                   epochs: int, validation_split: Optional[float],
-                  checkpoint: int, verbose: int):
+                  checkpoint: int, tensorboard: Optional[str], verbose: int):
     """
     Train a model.
     """
@@ -80,6 +83,8 @@ def train_command(model_path: str, data: LabeledSequences, units: List[int],
     callbacks = []
     if checkpoint:
         callbacks.append(ModelCheckpoint(filepath=model_path, verbose=verbose, save_best_only=True, period=checkpoint))
+    if tensorboard:
+        callbacks.append(TensorBoard(tensorboard))
     model.fit(data.x, data.y, epochs=epochs, validation_split=validation_split, callbacks=callbacks, verbose=verbose)
     model.save(model_path)
     model.summary()
