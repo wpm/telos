@@ -89,10 +89,10 @@ def train_command(model_path: str, data: LabeledSequences, units: List[int],
     if tensorboard:
         callbacks.append(TensorBoard(tensorboard))
     data = data.limit(limit)
-    print(data)
     model.fit(data.x, data.y, epochs=epochs, validation_split=validation_split, callbacks=callbacks,
               verbose=keras_verbosity(verbose, True))
     model.save(model_path)
+    print(data)
     model.summary()
 
 
@@ -109,9 +109,9 @@ def predict_command(model_path: str, data: LabeledSequences, details: bool, verb
 
     model = load_model(model_path)
     y = model.predict(data.x, verbose=keras_verbosity(verbose, False))
-    print(data)
     if details:
         data.sequence_details(y)
+    print(data)
     print(f'Accuracy: {data.accuracy(y):0.4}')
 
 
