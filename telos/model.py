@@ -131,3 +131,6 @@ class LabeledSequences:
         with File(filename, 'x') as f:
             f.create_dataset('x', data=self.x)
             f.create_dataset('y', data=self.y)
+
+    def limit(self, n: Optional[int]) -> 'LabeledSequences':
+        return self if n is None else LabeledSequences(self.x[:n], self.y[:n])

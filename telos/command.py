@@ -68,10 +68,11 @@ def info_command(data: LabeledSequences, details: bool):
 @click.option('--checkpoint', type=int, help='interval at which to save a checkpoint')
 @click.option('--tensorboard', type=click.Path(exists=False, file_okay=False, writable=True),
               help='directory in which to write TensorBoard logs')
-@click.option('--verbose', '-v', count=True, help='Keras verbosity level')
+@click.option('--limit', type=int, help='limit training set to this many samples')
+@click.option('--verbose', '-v', count=True, help='verbosity level')
 def train_command(model_path: str, data: LabeledSequences, units: List[int],
                   epochs: int, validation_split: Optional[float],
-                  checkpoint: int, tensorboard: Optional[str], verbose: int):
+                  checkpoint: int, tensorboard: Optional[str], limit: Optional[int], verbose: int):
     """
     Train a model.
     """
@@ -87,7 +88,9 @@ def train_command(model_path: str, data: LabeledSequences, units: List[int],
         callbacks.append(ModelCheckpoint(filepath=model_path, verbose=verbose, save_best_only=True, period=checkpoint))
     if tensorboard:
         callbacks.append(TensorBoard(tensorboard))
-    model.fit(data.x, data.y, epochs=epochs, validation_split=validation_split, callbacks=callbacks, verbose=verbose)
+    data = data.limit(limit)
+    model.fit(data.x, data.y, epochs=epochs, validation_split=validation_split, callbacks=callbacks,
+              verbose=keras_verbosity(verbose, True))
     model.save(model_path)
     model.summary()
 
@@ -96,15 +99,26 @@ def train_command(model_path: str, data: LabeledSequences, units: List[int],
 @click.argument('model_path', metavar='MODEL', type=click.Path(exists=True, dir_okay=False, readable=True))
 @click.argument('data', type=LabeledSequencesParamType())
 @click.option('--details', is_flag=True, help='show prediction details')
-@click.option('--verbose', '-v', count=True, help='Keras verbosity level')
+@click.option('--verbose', '-v', count=True, help='verbosity level')
 def predict_command(model_path: str, data: LabeledSequences, details: bool, verbose: int):
     """
-    Evaluate a randomly generated test set.
+    Evaluate a test set.
     """
     from keras.models import load_model
 
     model = load_model(model_path)
-    y = model.predict(data.x, verbose=verbose)
+    y = model.predict(data.x, verbose=keras_verbosity(verbose, False))
     if details:
         data.sequence_details(y)
     print(f'Accuracy: {data.accuracy(y):0.4}')
+
+
+def keras_verbosity(verbose: int, train: bool):
+    if train:
+        if verbose == 1:
+            verbose = 2
+        elif verbose >= 2:
+            verbose = 1
+    else:
+        verbose = min(verbose, 1)
+    return verbose
