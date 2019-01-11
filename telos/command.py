@@ -66,28 +66,33 @@ def info_command(data: LabeledSequences, details: bool):
 @click.option('--epochs', default=200, show_default=True, help='number of training epochs')
 @click.option('--validation-split', type=float, help='portion of data to use for validation')
 @click.option('--checkpoint', type=int, help='interval at which to save a checkpoint')
+@click.option('--early-stop', type=int, help='stop after no improvement for this many epochs')
 @click.option('--tensorboard', type=click.Path(exists=False, file_okay=False, writable=True),
               help='directory in which to write TensorBoard logs')
 @click.option('--limit', type=int, help='limit training set to this many samples')
 @click.option('--verbose', '-v', count=True, help='verbosity level')
 def train_command(model_path: str, data: LabeledSequences, units: List[int],
                   epochs: int, validation_split: Optional[float],
-                  checkpoint: int, tensorboard: Optional[str], limit: Optional[int], verbose: int):
+                  checkpoint: int, early_stop: Optional[int], tensorboard: Optional[str], limit: Optional[int],
+                  verbose: int):
     """
     Train a model.
     """
     from keras.models import load_model
-    from keras.callbacks import ModelCheckpoint, TensorBoard
+    from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 
     if Path(model_path).exists():
         model = load_model(model_path)
     else:
         model = sequence_to_sequence_model(data.time_steps, data.features, data.labels, units)
     callbacks = []
-    if checkpoint:
+    if checkpoint is not None:
         callbacks.append(ModelCheckpoint(filepath=model_path, verbose=verbose, save_best_only=True, period=checkpoint))
-    if tensorboard:
+    if tensorboard is not None:
         callbacks.append(TensorBoard(tensorboard))
+    if early_stop is not None:
+        monitor = 'val_loss' if validation_split else 'loss'
+        callbacks.append(EarlyStopping(monitor=monitor, patience=early_stop, restore_best_weights=True, verbose=1))
     data = data.limit(limit)
     model.fit(data.x, data.y, epochs=epochs, validation_split=validation_split, callbacks=callbacks,
               verbose=keras_verbosity(verbose, True))
